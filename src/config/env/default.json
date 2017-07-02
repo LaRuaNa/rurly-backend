@@ -1,0 +1,8 @@
+{
+  "HTTP_PORT": 3000,
+  "COOKIE_SECRET": "mysupersecret",
+  "MONGODB": {
+    "SERVER": "mongodb://localhost:27017/express-dummy",
+    "OPTIONS": {}
+  }
+}
