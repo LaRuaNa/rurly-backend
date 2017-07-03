@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
@@ -8,11 +7,12 @@ const RedisStore = require('connect-redis')(session);
 const config = require('./config');
 const logger = require('./lib/logger');
 
-const helloController = require('./controller/hello');
+const requestloggerMiddleware = require('./middleware/requestLogger');
+
+const urlController = require('./controller/url');
 
 const app = express();
 
-mongoose.Promise = global.Promise;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -27,9 +27,16 @@ app.use(session({
 }));
 
 
+/* MIDDLEWARES */
+
+app.use(requestloggerMiddleware());
+
+/* MIDDLEWARES END */
+
+
 /* ROUTES */
 
-app.use('/', helloController());
+app.use('/', urlController());
 
 /* ROUTES END */
 
@@ -37,17 +44,9 @@ app.use('/', helloController());
 if (!module.parent) {
   logger.info(`started with ${config.get('NODE_ENV')} env.`);
 
-  mongoose.connection
-    .on('error', err => logger.error(err))
-    .once('open', () => {
-      logger.info(`connected: ${config.get('MONGODB:SERVER')}`);
-
-      app.listen(config.get('HTTP_PORT'), function serverListen() {
-        logger.info(`Express server listening on port http://localhost:${this.address().port}`);
-      });
-    });
-
-  mongoose.connect(config.get('MONGODB:SERVER'));
+  app.listen(config.get('HTTP_PORT'), function serverListen() {
+    logger.info(`Express server listening on port http://localhost:${this.address().port}`);
+  });
 }
 
 module.exports = app;

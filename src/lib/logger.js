@@ -21,6 +21,6 @@ const streams = [
 ];
 
 module.exports = bunyan.createLogger({
-  name: 'express-dummy',
+  name: 'rurly-backend',
   streams,
 });

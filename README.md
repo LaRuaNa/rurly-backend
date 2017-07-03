@@ -1,2 +1,1 @@
-# express-dummy
 # rurly-backend
