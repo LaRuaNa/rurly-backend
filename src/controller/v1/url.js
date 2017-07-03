@@ -3,9 +3,9 @@ const {
   Router,
 } = require('express');
 
-const track = require('../lib/track');
-const base58 = require('../lib/base58');
-const logger = require('../lib/logger');
+const track = require('../../lib/track');
+const base58 = require('../../lib/base58');
+const logger = require('../../lib/logger');
 
 const publisher = new Redis();
 const redisClient = new Redis();

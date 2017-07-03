@@ -10,7 +10,7 @@ const logger = require('./lib/logger');
 
 const requestloggerMiddleware = require('./middleware/requestLogger');
 
-const urlController = require('./controller/url');
+const urlController = require('./controller/v1/url');
 
 const app = express();
 
