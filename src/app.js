@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
@@ -40,13 +41,19 @@ app.use('/', urlController());
 
 /* ROUTES END */
 
-
 if (!module.parent) {
   logger.info(`started with ${config.get('NODE_ENV')} env.`);
 
-  app.listen(config.get('HTTP_PORT'), function serverListen() {
-    logger.info(`Express server listening on port http://localhost:${this.address().port}`);
-  });
-}
+  mongoose.connection
+    .on('error', err => logger.error(err))
+    .once('open', () => {
+      logger.info(`connected: ${config.get('MONGODB:SERVER')}`);
 
+      app.listen(config.get('HTTP_PORT'), function serverListen() {
+        logger.info(`Express server listening on port http://localhost:${this.address().port}`);
+      });
+    });
+
+  mongoose.connect(config.get('MONGODB:SERVER'));
+}
 module.exports = app;

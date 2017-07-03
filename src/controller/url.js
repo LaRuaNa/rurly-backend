@@ -33,16 +33,12 @@ module.exports = () => {
   api.get('/:id', async(req, res) => {
     const id = req.params.id || '';
     const url = await redisClient.hget(id, 'url');
-
+    console.log(`url: ${url}`);
     if (!url) {
+      logger.error('ERROR: GET /:id:  NO URL');
       res.status(404).send();
       return;
     }
-
-    track.updateUrlViewsCounter(id)
-      .catch((error) => {
-        logger.error('ERROR: updateUrlViewsCounter ', error);
-      });
 
     await redisClient.hincrby(id, 'views', 1);
     await publisher.publish('updates', id);
@@ -57,6 +53,7 @@ module.exports = () => {
     const id = req.params.id || false;
 
     if (!id) {
+      logger.error('ERROR: GET /stream/:id: NO ID');
       res.status(400).send();
       return;
     }
@@ -68,7 +65,7 @@ module.exports = () => {
     subscriber.on('message', async(channel, message) => {
       messageCount += 1;
       const count = await redisClient.hget(id, 'views');
-      console.log(`message: ${message}, channel: ${channel}`);
+      // console.log(`message: ${message}, channel: ${channel}`);
       res.write(`id: ${messageCount}\n`);
       res.write(`data: ${count}\n\n`);
     });
