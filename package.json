@@ -22,7 +22,9 @@
     "express-session": "^1.15.2",
     "ioredis": "^3.1.1",
     "mongoose": "^4.11.1",
-    "nconf": "^0.8.4"
+    "nconf": "^0.8.4",
+    "passport": "^0.3.2",
+    "passport-local": "^1.0.0"
   },
   "devDependencies": {
     "babel-eslint": "^7.1.0",

@@ -7,14 +7,6 @@ const UserSchema = new mongoose.Schema({
     required: true,
     default: true,
   },
-  name: {
-    first: {
-      type: String,
-    },
-    last: {
-      type: String,
-    },
-  },
   username: {
     type: String,
     required: true,
@@ -28,49 +20,17 @@ const UserSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    index: {
-      unique: true,
-    },
+    unique: true,
     required: true,
-  },
-  roles: {
-    type: Array,
-    index: true,
-    required: true,
-    default: ['authenticated'],
-  },
-  token: {
-    type: String,
   },
 });
 
-UserSchema.virtual('password').set((password) => {
+UserSchema.virtual('password').set(function (password) {
   const salt = bcrypt.genSaltSync(10);
   this.hashedPassword = bcrypt.hashSync(password, salt);
 });
 
-UserSchema.virtual('fullname')
-  .get(() => `${this.name.first} ${this.name.last}`);
-
-UserSchema.virtual('fullname')
-  .get(() => this.name.full)
-  .set((name) => {
-    const split = name.split(' ');
-    this.name.first = split[0];
-    this.name.last = split[1];
-  });
-
 UserSchema.methods = {
-  hasRole(role) {
-    const roles = this.roles;
-    return roles.indexOf('admin') !== -1 || roles.indexOf(role) !== -1;
-  },
-
-  isAdmin() {
-    const roles = this.roles;
-    return roles.indexOf('admin') !== -1;
-  },
-
   comparePassword(candidatePassword, cb) {
     bcrypt.compare(candidatePassword, this.hashedPassword, (error, isMatch) => {
       if (error) {
@@ -82,4 +42,4 @@ UserSchema.methods = {
   },
 };
 
-export default mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', UserSchema);

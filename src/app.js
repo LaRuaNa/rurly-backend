@@ -1,19 +1,71 @@
 const express = require('express');
+const passport = require('passport');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const RedisStore = require('connect-redis')(session);
+const Strategy = require('passport-local').Strategy;
 
+const User = require('./model/user');
 const config = require('./config');
 const logger = require('./lib/logger');
 
 const requestloggerMiddleware = require('./middleware/requestLogger');
 
-const urlController = require('./controller/v1/url');
+const urlsControllerV1 = require('./controller/v1/urls');
+const usersControllerV1 = require('./controller/v1/users');
+const authControllerV1 = require('./controller/v1/auth');
 
 const app = express();
 
+passport.use(new Strategy(
+  (username, password, cb) => {
+    console.log(`username: ${username} password: ${password}`);
+    User.findOne({
+        username,
+      })
+      .exec()
+      .then((user) => {
+        if (!user) {
+          cb(null, false);
+          return;
+        }
+        user.comparePassword(password, (error, isMatch) => {
+          if (error) {
+            cb(error);
+            logger.error('ERROR: comparePassword() ', error);
+
+            return;
+          }
+          if (!isMatch) {
+            cb(null, false);
+            return;
+          }
+          if (isMatch) {
+            cb(null, user);
+          }
+        });
+      })
+      .catch((error) => {
+        cb(error);
+        logger.error('ERROR: User.findOne ', error);
+      });
+  }));
+
+passport.serializeUser((user, cb) => {
+  cb(null, user._id);
+});
+
+passport.deserializeUser((id, cb) => {
+  User.findById(id, (error, user) => {
+    if (error) {
+      cb(error);
+      return;
+    }
+    cb(null, user);
+  });
+});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -28,6 +80,9 @@ app.use(session({
 }));
 
 
+app.use(passport.initialize());
+app.use(passport.session());
+
 /* MIDDLEWARES */
 
 app.use(requestloggerMiddleware());
@@ -37,7 +92,9 @@ app.use(requestloggerMiddleware());
 
 /* ROUTES */
 
-app.use('/', urlController());
+app.use('/users', usersControllerV1());
+app.use('/auth', authControllerV1());
+app.use('/', urlsControllerV1());
 
 /* ROUTES END */
 
