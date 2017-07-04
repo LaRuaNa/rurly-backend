@@ -15,7 +15,6 @@ module.exports = () => {
 
   api.post('/', async(req, res) => {
     const url = req.body.url || '';
-    const isAuthenticated = req.isAuthenticated();
 
     const id = await track.getNextId();
     const encodedId = await base58.encode(id);
