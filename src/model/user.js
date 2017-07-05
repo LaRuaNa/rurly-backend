@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
+delete mongoose.models.User;
+delete mongoose.modelSchemas.User;
+
 const UserSchema = new mongoose.Schema({
   enabled: {
     type: Boolean,
@@ -31,13 +34,15 @@ UserSchema.virtual('password').set(function (password) {
 });
 
 UserSchema.methods = {
-  comparePassword(candidatePassword, cb) {
-    bcrypt.compare(candidatePassword, this.hashedPassword, (error, isMatch) => {
-      if (error) {
-        cb(error);
-        return;
-      }
-      cb(null, isMatch);
+  comparePassword(candidatePassword) {
+    return new Promise((resolve, reject) => {
+      bcrypt.compare(candidatePassword, this.hashedPassword, (error, isMatch) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(isMatch);
+      });
     });
   },
 };

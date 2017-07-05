@@ -4,6 +4,7 @@ module.exports = {
       next();
       return;
     }
+
     res.status(401).send();
   },
 };

@@ -1,11 +1,13 @@
 const Redis = require('ioredis');
-const {
-  Router,
-} = require('express');
+const base58 = require('base58');
+const { Router } = require('express');
 
+const config = require('../../config');
 const track = require('../../lib/track');
-const base58 = require('../../lib/base58');
 const logger = require('../../lib/logger');
+const asyncWrap = require('../../lib/async-wrap');
+
+const User = require('../../model/user');
 
 const publisher = new Redis();
 const redisClient = new Redis();
@@ -13,27 +15,40 @@ const redisClient = new Redis();
 module.exports = () => {
   const api = new Router();
 
-  api.post('/', async(req, res) => {
+  api.post('/', asyncWrap(async (req, res) => {
     const url = req.body.url || '';
+    const isAuthenticated = req.isAuthenticated();
 
     const id = await track.getNextId();
-    const encodedId = await base58.encode(id);
+    const encodedId = base58.encode(id);
+
+    if (isAuthenticated) {
+      User.findByIdAndUpdate(req.user.id, {
+        $addToSet: {
+          links: encodedId,
+        },
+      })
+      .exec()
+      .catch((error) => {
+        logger.error('ERROR: POST / findByIdAndUpdate', error);
+      });
+    }
 
     try {
       await redisClient.hset(encodedId, 'url', url);
       res.json({
-        id: encodedId,
+        url: `${config.get('DOMAIN_NAME')}/${encodedId}`,
       });
     } catch (error) {
       logger.error('ERROR: redisClient.hset ', error);
       res.status(400).send();
     }
-  });
+  }));
 
-  api.get('/:id', async(req, res) => {
+  api.get('/:id', asyncWrap(async(req, res) => {
     const id = req.params.id || '';
     const url = await redisClient.hget(id, 'url');
-    console.log(`url: ${url}`);
+
     if (!url) {
       logger.error('ERROR: GET /:id:  NO URL');
       res.status(404).send();
@@ -43,11 +58,12 @@ module.exports = () => {
     await redisClient.hincrby(id, 'views', 1);
     await publisher.publish('updates', id);
 
-    res.send(url);
-  });
+    res.redirect(url);
+  }));
 
-  api.get('/stream/:id', async(req, res) => {
-    req.socket.setTimeout(0x7FFFFFFF);
+  api.get('/stream/:id', asyncWrap(async(req, res) => {
+    req.socket.setTimeout(500);
+    const isAuthenticated = req.isAuthenticated();
 
     let messageCount = 0;
     const id = req.params.id || false;
@@ -58,14 +74,23 @@ module.exports = () => {
       return;
     }
 
+    if (!isAuthenticated) {
+      logger.error('ERROR: GET /stream/:id: isAuthenticated');
+      res.status(401).send();
+      return;
+    }
+
+    if (!req.user.links.includes(id)) {
+      logger.error(`ERROR: GET /stream/:id: user is no allowed to access id: ${id}`);
+      res.status(403).send();
+      return;
+    }
+
     const subscriber = new Redis();
 
-    subscriber.subscribe('updates');
-
-    subscriber.on('message', async(channel, message) => {
+    subscriber.on('message', async() => {
       messageCount += 1;
       const count = await redisClient.hget(id, 'views');
-      // console.log(`message: ${message}, channel: ${channel}`);
       res.write(`id: ${messageCount}\n`);
       res.write(`data: ${count}\n\n`);
     });
@@ -73,6 +98,8 @@ module.exports = () => {
     subscriber.on('error', (error) => {
       logger.error('ERROR: sub.on(error) ', error);
     });
+
+    subscriber.subscribe('updates');
 
     res.writeHead(200, {
       'Access-Control-Allow-Origin': '*',
@@ -86,7 +113,7 @@ module.exports = () => {
       subscriber.unsubscribe();
       subscriber.quit();
     });
-  });
+  }));
 
   return api;
 };

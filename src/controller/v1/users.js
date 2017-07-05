@@ -35,36 +35,34 @@ module.exports = () => {
 
   api.put('/', (req, res) => {
     User.findOneAndUpdate({
-        _id: req.body.id,
-      }, req.body, {
-        new: true,
-      })
-      .exec()
-      .then((user) => {
-        res.json(user);
-      })
-      .catch((error) => {
-        logger.error('ERROR: PUT / ', error);
-        res.status(404).send();
-      });
+      _id: req.body.id,
+    }, req.body, {
+      new: true,
+    })
+    .exec()
+    .then((user) => {
+      res.json(user);
+    })
+    .catch((error) => {
+      logger.error('ERROR: PUT / ', error);
+      res.status(404).send();
+    });
   });
 
-  api.delete('/', (req, res) => {
+  api.delete('/', (req, res, next) => {
     User.findOneAndUpdate({
-        _id: req.body.id,
-      }, {
-        enabled: false,
-      }, {
-        new: true,
-      })
-      .exec()
-      .then((user) => {
-        res.json(user);
-      })
-      .catch((error) => {
-        logger.error('ERROR: DELETE / ', error);
-        res.status(404).send();
-      });
+      _id: req.body.id,
+    }, {
+      enabled: false,
+    })
+    .exec()
+    .then((user) => {
+      res.json(user);
+    })
+    .catch((error) => {
+      logger.error('ERROR: DELETE / ', error);
+      next(error);
+    });
   });
 
   return api;
