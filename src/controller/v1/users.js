@@ -10,6 +10,7 @@ module.exports = () => {
 
 
   api.post('/', (req, res) => {
+    console.log(req.body);
     new User(req.body)
       .save((error, user) => {
         if (error) {
@@ -54,6 +55,8 @@ module.exports = () => {
       _id: req.body.id,
     }, {
       enabled: false,
+    }, {
+      new: true,
     })
     .exec()
     .then((user) => {

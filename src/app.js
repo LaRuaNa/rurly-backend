@@ -9,49 +9,49 @@ const cookieParser = require('cookie-parser');
 const RedisStore = require('connect-redis')(session);
 const Strategy = require('passport-local').Strategy;
 
-const User = require('./model/user');
 const config = require('./config');
+const User = require('./model/user');
 const logger = require('./lib/logger');
 
 const mainControllerV1 = require('./controller/v1/main');
-const usersControllerV1 = require('./controller/v1/users');
 const authControllerV1 = require('./controller/v1/auth');
+const usersControllerV1 = require('./controller/v1/users');
 
 mongoose.Promise = global.Promise;
 
 const app = express();
 
-passport.use(new Strategy(async (username, password, cb) => {
+passport.use(new Strategy(async(username, password, cb) => {
   User.findOne({
     username,
   })
-  .exec()
-  .then(async (user) => {
-    if (!user) {
-      cb(null, false);
-      return;
-    }
+    .exec()
+    .then(async(user) => {
+      if (!user) {
+        cb(null, false);
+        return;
+      }
 
-    let isMatch = false;
-    try {
-      isMatch = await user.comparePassword(password);
-    } catch (err) {
-      cb(err);
-      return;
-    }
+      let isMatch = false;
+      try {
+        isMatch = await user.comparePassword(password);
+      } catch (err) {
+        cb(err);
+        return;
+      }
 
-    if (!isMatch) {
-      cb(null, false);
-      return;
-    }
-    if (isMatch) {
-      cb(null, user);
-    }
-  })
-  .catch((error) => {
-    cb(error);
-    logger.error('ERROR: User.findOne ', error);
-  });
+      if (!isMatch) {
+        cb(null, false);
+        return;
+      }
+      if (isMatch) {
+        cb(null, user);
+      }
+    })
+    .catch((error) => {
+      cb(error);
+      logger.error('ERROR: User.findOne ', error);
+    });
 }));
 
 passport.serializeUser((user, cb) => {
@@ -79,7 +79,11 @@ app.use(session({
   store: new RedisStore(),
   secret: config.get('SESSION_SECRET'),
 }));
-app.use(morgan('combined', { stream: { write: msg => logger.info(msg) } }));
+app.use(morgan('combined', {
+  stream: {
+    write: msg => logger.info(msg),
+  },
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -95,13 +99,16 @@ app.use(errorhandler());
 if (!module.parent) {
   logger.info(`started with ${config.get('NODE_ENV')} env.`);
 
-  mongoose.createConnection(config.get('MONGODB:SERVER'), config.get('MONGODB:OPTIONS'))
-    .then(() => {
+  mongoose.connection
+    .on('error', err => logger.error(err))
+    .once('open', () => {
       logger.info(`connected: ${config.get('MONGODB:SERVER')}`);
 
       app.listen(config.get('HTTP_PORT'), function serverListen() {
         logger.info(`Express server listening on port http://localhost:${this.address().port}`);
       });
     });
+
+  mongoose.connect(config.get('MONGODB:SERVER'));
 }
 module.exports = app;

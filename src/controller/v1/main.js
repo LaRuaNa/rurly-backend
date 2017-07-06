@@ -38,6 +38,7 @@ module.exports = () => {
       await redisClient.hset(encodedId, 'url', url);
       res.json({
         url: `${config.get('DOMAIN_NAME')}/${encodedId}`,
+        id: encodedId,
       });
     } catch (error) {
       logger.error('ERROR: redisClient.hset ', error);

@@ -10,7 +10,7 @@
     "test:reporter": "npm test -- --reporter mocha-junit-reporter",
     "test:eslint": "node_modules/.bin/eslint src/**/*.js"
   },
-  "author": "Onur Laru",
+  "author": "Onur Laru <larugit@false.one>",
   "license": "MIT",
   "dependencies": {
     "base58": "^0.1.0",
